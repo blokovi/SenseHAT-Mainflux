@@ -55,24 +55,51 @@ class TxCharacteristic(Characteristic):
         self.notifying = False
  
 class RxCharacteristic(Characteristic):
+    sense = SenseHat()
     def __init__(self, bus, index, service):
         Characteristic.__init__(self, bus, index, UART_RX_CHARACTERISTIC_UUID,
                                 ['write', 'read'], service)
 
     def ReadValue(self, options):
-        sense = SenseHat()
-        t = sense.get_temperature()
+        t = self.sense.get_temperature()
         t = round(t, 1)
         return str(t)
 
     def WriteValue(self, value, options):
         print('remote: {}'.format(bytearray(value).decode()))
+        # write message on LED matrix display:
+        self.sense.show_message(format(bytearray(value).decode()))
+
+class PressureCharacteristic(Characteristic):
+    sense = SenseHat()
+    def __init__(self, bus, index, service):
+        Characteristic.__init__(self, bus, index, UART_RX_CHARACTERISTIC_UUID,
+                                ['read'], service)
+
+    def ReadValue(self, options):
+        t = self.sense.get_pressure()
+        t = round(t, 1)
+        return str(t)
+
+
+class HumidityCharacteristic(Characteristic):
+    sense = SenseHat()
+    def __init__(self, bus, index, service):
+        Characteristic.__init__(self, bus, index, UART_RX_CHARACTERISTIC_UUID,
+                                ['read'], service)
+
+    def ReadValue(self, options):
+        t = self.sense.get_humidity()
+        t = round(t, 1)
+        return str(t)
  
 class UartService(Service):
     def __init__(self, bus, index):
         Service.__init__(self, bus, index, UART_SERVICE_UUID, True)
         self.add_characteristic(TxCharacteristic(bus, 0, self))
         self.add_characteristic(RxCharacteristic(bus, 1, self))
+        self.add_characteristic(PressureCharacteristic(bus, 2, self))
+        self.add_characteristic(HumidityCharacteristic(bus, 3, self))
  
 class Application(dbus.service.Object):
     def __init__(self, bus):
